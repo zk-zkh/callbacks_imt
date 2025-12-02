@@ -18,6 +18,7 @@ use ark_relations::{
 };
 use ark_snark::SNARK;
 use core::marker::PhantomData;
+use incrementalmerkletree_testing::incremental_int_tree::IntTreePath;
 use rand::{
     CryptoRng, RngCore,
     distributions::{Distribution, Standard},
@@ -976,6 +977,44 @@ where
         ProvePredInCircuit {
             priv_user: u.clone(),
             priv_extra_membership_data: Bul::MembershipWitness::default(),
+            pub_args: aux_data,
+            priv_args: PrivArgs::default(),
+            bul_memb_is_const: memb_data.is_some(),
+            pub_extra_membership_data: memb_data.unwrap_or_default(),
+            associated_method: pred,
+
+            _phantom_hash: PhantomData,
+        };
+    Snark::circuit_specific_setup(out, rng).unwrap()
+}
+
+/// generate_keys_for_statement_in for merkle tree
+pub fn generate_keys_for_statement_in_mt<
+    F: PrimeField + Absorb,
+    H: FieldHash<F>,
+    U: UserData<F> + Default,
+    PubArgs: Clone + Default,
+    PubArgsVar: AllocVar<PubArgs, F>,
+    PrivArgs: Clone + Default,
+    PrivArgsVar: AllocVar<PrivArgs, F>,
+    Snark: SNARK<F>,
+    Bul: PublicUserBul<F, U>,
+>(
+    rng: &mut (impl CryptoRng + RngCore),
+    pred: SingularPredicate<F, UserVar<F, U>, ComVar<F>, PubArgsVar, PrivArgsVar>,
+    memb_data: Option<Bul::MembershipPub>,
+
+    aux_data: PubArgs,
+    wit_default: Bul::MembershipWitness,
+) -> (Snark::ProvingKey, Snark::VerifyingKey)
+where
+    Standard: Distribution<F>,
+{
+    let u = User::create(U::default(), rng);
+    let out: ProvePredInCircuit<F, H, U, PubArgs, PubArgsVar, PrivArgs, PrivArgsVar, Bul> =
+        ProvePredInCircuit {
+            priv_user: u.clone(),
+            priv_extra_membership_data: wit_default,
             pub_args: aux_data,
             priv_args: PrivArgs::default(),
             bul_memb_is_const: memb_data.is_some(),

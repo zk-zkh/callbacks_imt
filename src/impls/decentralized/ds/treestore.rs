@@ -307,11 +307,8 @@ where
     pub nmemb_tree: RangeTree<F, INT_TREE_DEPTH>,
 }
 
-impl<
-    F: PrimeField + Absorb + std::convert::From<impls::centralized::crypto::PlainTikCrypto<F>>,
-    const INT_TREE_DEPTH: u8,
-    Args,
-> MTCallbackStore<F, INT_TREE_DEPTH, Args>
+impl<F: PrimeField + Absorb, const INT_TREE_DEPTH: u8, Args>
+    MTCallbackStore<F, INT_TREE_DEPTH, Args>
 where
     Standard: Distribution<F>,
     Args: Clone + ToConstraintField<F>,
@@ -362,10 +359,8 @@ where
     }
 }
 
-impl<
-    F: PrimeField + Absorb + std::convert::From<impls::centralized::crypto::PlainTikCrypto<F>>,
-    const INT_TREE_DEPTH: u8,
-> PublicCallbackBul<F, F, NoSigOTP<F>> for MTCallbackStore<F, INT_TREE_DEPTH, F>
+impl<F: PrimeField + Absorb, const INT_TREE_DEPTH: u8> PublicCallbackBul<F, F, NoSigOTP<F>>
+    for MTCallbackStore<F, INT_TREE_DEPTH, F>
 where
     Standard: Distribution<F>,
 {
@@ -550,10 +545,8 @@ where
     }
 }
 
-impl<
-    F: PrimeField + Absorb + std::convert::From<impls::centralized::crypto::PlainTikCrypto<F>>,
-    const INT_TREE_DEPTH: u8,
-> CallbackBul<F, F, NoSigOTP<F>> for MTCallbackStore<F, INT_TREE_DEPTH, F>
+impl<F: PrimeField + Absorb, const INT_TREE_DEPTH: u8> CallbackBul<F, F, NoSigOTP<F>>
+    for MTCallbackStore<F, INT_TREE_DEPTH, F>
 where
     Standard: Distribution<F>,
 {

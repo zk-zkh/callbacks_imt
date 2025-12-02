@@ -48,6 +48,11 @@ impl<F: CanonicalSerialize + CanonicalDeserialize + Clone> PlainTikCrypto<F> {
         self.0.clone()
     }
 }
+impl<F: CanonicalSerialize + CanonicalDeserialize> From<F> for PlainTikCrypto<F> {
+    fn from(f: F) -> PlainTikCrypto<F> {
+        PlainTikCrypto(f)
+    }
+}
 
 impl<F: PrimeField> ToConstraintField<F> for PlainTikCrypto<F> {
     fn to_field_elements(&self) -> Option<Vec<F>> {
