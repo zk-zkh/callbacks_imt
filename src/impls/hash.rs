@@ -3,7 +3,7 @@ use crate::{
     util::gen_poseidon_params,
 };
 use ark_crypto_primitives::{
-    crh::{poseidon, poseidon::CRH, CRHScheme, CRHSchemeGadget},
+    crh::{CRHScheme, CRHSchemeGadget, poseidon, poseidon::CRH},
     sponge::Absorb,
 };
 use ark_ff::PrimeField;

@@ -35,7 +35,7 @@ use ark_relations::r1cs::ToConstraintField;
 /// key.
 ///
 /// **Take a look at the documentation on the type aliases**, as those are more useful.
-pub struct PlainTikCrypto<F: CanonicalSerialize + CanonicalDeserialize>(F);
+pub struct PlainTikCrypto<F: CanonicalSerialize + CanonicalDeserialize>(pub(crate) F);
 
 impl<F: CanonicalSerialize + CanonicalDeserialize + Clone> PlainTikCrypto<F> {
     /// Construct a new plain ticket from a field element.

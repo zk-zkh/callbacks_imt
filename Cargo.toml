@@ -28,6 +28,8 @@ blake2 = "0.10.6"
 ark-ed-on-bls12-381 = { version = "0.5.0", features = ["ark-r1cs-std", "r1cs", "std"] }
 ark-bls12-377 = { version = "0.5.0", features = ["r1cs"] }
 ark-ed-on-bls12-377 = { version = "0.5.0", features = ["r1cs"] }
+incrementalmerkletree = { git = "https://github.com/moshih/incrementalmerkletree.git"}
+incrementalmerkletree-testing = { git = "https://github.com/moshih/incrementalmerkletree.git"}
 
 [features]
 asynchr = []
