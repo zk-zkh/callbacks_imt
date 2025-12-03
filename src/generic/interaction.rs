@@ -528,6 +528,61 @@ where
 
         Snark::circuit_specific_setup(out, rng).unwrap()
     }
+
+    /// generate_keys for mt
+    pub fn generate_keys_mt<
+        H: FieldHash<F>,
+        Snark: SNARK<F>,
+        Crypto: AECipherSigZK<F, CBArgs>,
+        Bul: PublicUserBul<F, U>,
+    >(
+        &self,
+        rng: &mut (impl CryptoRng + RngCore),
+        memb_data: Option<Bul::MembershipPub>,
+        aux_data: PubArgs,
+        is_scan: bool,
+        wit_default: Bul::MembershipWitness,
+    ) -> (Snark::ProvingKey, Snark::VerifyingKey) {
+        let u = User::create(U::default(), rng);
+
+        let cbs: [CallbackCom<F, CBArgs, Crypto>; NUMCBS] =
+            create_defaults((*self).clone(), <Time<F>>::default());
+
+        let x = (*self).clone();
+
+        let out: ExecMethodCircuit<
+            F,
+            H,
+            U,
+            PubArgs,
+            PubArgsVar,
+            PrivArgs,
+            PrivArgsVar,
+            CBArgs,
+            CBArgsVar,
+            Crypto,
+            Bul,
+            NUMCBS,
+        > = ExecMethodCircuit {
+            priv_old_user: u.clone(),
+            priv_new_user: u.clone(),
+            priv_issued_callbacks: cbs.clone(),
+            priv_bul_membership_witness: wit_default,
+            priv_args: PrivArgs::default(),
+
+            pub_new_com: u.commit::<H>(),
+            pub_old_nul: u.zk_fields.nul,
+            pub_issued_callback_coms: cbs.map(|x| x.commit::<H>()),
+            pub_args: aux_data,
+            associated_method: x,
+            is_scan,
+            bul_memb_is_const: memb_data.is_some(),
+            pub_bul_membership_data: memb_data.unwrap_or_default(),
+            _phantom_hash: PhantomData,
+        };
+
+        Snark::circuit_specific_setup(out, rng).unwrap()
+    }
 }
 
 /// The circuit used to generating proofs of an executed method. This is not necessary for use with the base system.

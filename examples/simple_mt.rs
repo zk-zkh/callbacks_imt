@@ -2,7 +2,9 @@ use ark_bn254::{Bn254 as E, Fr as F};
 use ark_ff::Zero;
 use ark_groth16::Groth16;
 use ark_r1cs_std::{eq::EqGadget, fields::fp::FpVar, prelude::Boolean};
-use ark_relations::r1cs::{Result as ArkResult, ToConstraintField};
+use ark_relations::r1cs::{
+    ConstraintSynthesizer, ConstraintSystem, Result as ArkResult, ToConstraintField,
+};
 use ark_snark::SNARK;
 use incrementalmerkletree_testing::{
     Tree, incremental_int_tree::IntTreePath, tree_util::PoseidonTreeConfig,
@@ -209,14 +211,21 @@ fn main() {
 
     let start = SystemTime::now();
 
+    let path_default: IntTreePath<F> = IntTreePath {
+        leaf_sibling_hash: F::default(),
+        auth_path: vec![F::zero(); INT_TREE_DEPTH as usize - 1],
+        leaf_index: 0,
+    };
+
     // generate keys for the method described initially
     let (pk, vk) =
         interaction // see interaction
-            .generate_keys::<Poseidon<2>, Groth16<E>, Cr, IMTObjStore<F, INT_TREE_DEPTH>>(
+            .generate_keys_mt::<Poseidon<2>, Groth16<E>, Cr, IMTObjStore<F, INT_TREE_DEPTH>>(
                 &mut rng,
-                Some(store.obj_bul.get_root()),
+                None,
                 (),
                 false,
+                path_default.clone(),
             );
     // generate keys for the callback scan
     let (pks, vks) = get_scan_interaction::<
@@ -229,19 +238,15 @@ fn main() {
         Poseidon<2>,
         NUMSCANS,
     >()
-    .generate_keys::<Poseidon<2>, Groth16<E>, Cr, IMTObjStore<F, INT_TREE_DEPTH>>(
+    .generate_keys_mt::<Poseidon<2>, Groth16<E>, Cr, IMTObjStore<F, INT_TREE_DEPTH>>(
         &mut rng,
-        Some(store.obj_bul.get_root()),
+        None,
         ex,
         true,
+        path_default.clone(),
     );
 
     // generate keys for the arbitrary predicate
-    let path_default: IntTreePath<F> = IntTreePath {
-        leaf_sibling_hash: F::default(),
-        auth_path: vec![F::zero(); INT_TREE_DEPTH as usize - 1],
-        leaf_index: 0,
-    };
     let (pki, vki) = generate_keys_for_statement_in_mt::<
         F,
         Poseidon<2>,
@@ -252,7 +257,7 @@ fn main() {
         (),
         Groth16<E>,
         IMTObjStore<F, INT_TREE_DEPTH>,
-    >(&mut rng, some_pred, None, (), path_default);
+    >(&mut rng, some_pred, None, (), path_default.clone());
     //>(&mut rng, some_pred, Some(store.obj_bul.get_root()), ());
     let idk: ark_crypto_primitives::merkle_tree::Path<PoseidonTreeConfig<F>> =
         IntTreePath::default();
@@ -338,158 +343,240 @@ fn main() {
     println!("[SERVER] Verified proof Output: {:?} \n\n", out);
 
     assert!(out.is_ok());
+
+    println!("[USER] Interacting (proving)...");
+    let start = SystemTime::now();
+    // Update the user in accordance with the first interaction
+    println!("before user commit: {:?}", u.commit::<Poseidon<2>>());
+    let exec_method = u
+        .exec_method_create_cb::<Poseidon<2>, (), (), (), (), F, FpVar<F>, Cr, Groth16<E>, IMTObjStore<F, INT_TREE_DEPTH>, 1>(
+            &mut rng,
+            interaction.clone(), // see interaction
+            [FakeSigPubkey::pk()],
+            Time::from(0),
+            &store.obj_bul,
+            false,
+            &pk,
+            (),
+            (),
+        )
+        .unwrap();
+
     /*
-       println!("[USER] Interacting (proving)...");
-       let start = SystemTime::now();
-       // Update the user in accordance with the first interaction
-       let exec_method = u
-           .exec_method_create_cb::<Poseidon<2>, (), (), (), (), F, FpVar<F>, Cr, Groth16<E>, GRSchnorrObjStore, 1>(
-               &mut rng,
-               interaction.clone(), // see interaction
-               [FakeSigPubkey::pk()],
-               Time::from(0),
-               &store.obj_bul,
-               true,
-               &pk,
-               (),
-               (),
-           )
-           .unwrap();
+     let exec_method_const = u
+         .constraint_exec_method_create_cb::<Poseidon<2>, (), (), (), (), F, FpVar<F>, Cr, IMTObjStore<F, INT_TREE_DEPTH>, 1>(
+             &mut rng,
+             interaction.clone(), // see interaction
+             [FakeSigPubkey::pk()],
+             Time::from(0),
+             &store.obj_bul,
+             false,
+             (),
+             (),
+         );
 
-       println!(
-           "\t (time) Interaction (proving) time: {:?}",
-           start.elapsed().unwrap()
-       );
-       println!("[USER] Executed interaction! New user: {:o} \n\n", u);
+    println!("exec_method_const is_satisfied: {:?}", exec_method_const.unwrap().is_satisfied());
 
-       println!("[BULLETIN / SERVER] Verifying and storing...");
-       let start = SystemTime::now();
+        */
+    /*
+      let exec_method_circ = u
+         .circuit_exec_method_create_cb::<Poseidon<2>, (), (), (), (), F, FpVar<F>, Cr, IMTObjStore<F, INT_TREE_DEPTH>, 1>(
+             &mut rng,
+             interaction.clone(), // see interaction
+             [FakeSigPubkey::pk()],
+             Time::from(0),
+             &store.obj_bul,
+             false,
+             (),
+             (),
+         )
+         .unwrap();
+      let new_cs = ConstraintSystem::<F>::new_ref();
+      exec_method_circ.clone().generate_constraints(new_cs.clone()).unwrap();
+      new_cs.is_satisfied().unwrap();
 
-       let out = <GRSchnorrObjStore as UserBul<F, TestData>>::verify_interact_and_append::<
-           (),
-           Groth16<E>,
-           1,
-       >(
-           &mut store.obj_bul,
-           exec_method.new_object.clone(),
-           exec_method.old_nullifier.clone(),
-           (),
-           exec_method.cb_com_list.clone(),
-           exec_method.proof.clone(),
-           None,
-           &vk,
-       );
-       let s1 = start.elapsed().unwrap();
-       // Server checks proof on interaction with the verification key, approves it, and stores the new object into the store
+    */
 
-       let start = SystemTime::now();
+    println!(
+        "\t (time) Interaction (proving) time: {:?}",
+        start.elapsed().unwrap()
+    );
+    println!("[USER] Executed interaction! New user: {:o} \n\n", u);
 
-       let res = store
-           .approve_interaction_and_store::<TestData, Groth16<E>, (), GRSchnorrObjStore, Poseidon<2>, 1>(
-               exec_method,          // output of interaction
-               FakeSigPrivkey::sk(), // for authenticity: verify rerandomization of key produces
-               // proper tickets (here it doesn't matter)
-               (),
-               &store.obj_bul.clone(),
-               cb_methods.clone(),
-               Time::from(0),
-               store.obj_bul.get_pubkey(),
-               true,
-               &vk,
-               332, // interaction number
-           );
+    println!("[BULLETIN / SERVER] Verifying and storing...");
+    let start = SystemTime::now();
 
-       println!("\t (time) Verify + append: {:?}", s1);
-       println!(
-           "\t (time) Verify + store interaction: {:?}",
-           start.elapsed().unwrap()
-       );
-       println!(
-           "[BULLETIN] Checked proof and stored user... Output: {:?}",
-           out
-       );
-       println!(
-           "[SERVER] Checking proof and storing interaction... Output: {:?} \n\n",
-           res
-       );
+    let old_root = store.obj_bul.get_root();
+    println!("root: {:?}", old_root);
+    let out = <IMTObjStore<F, INT_TREE_DEPTH> as UserBul<F, TestData>>::verify_interact_and_append::<
+        (),
+        Groth16<E>,
+        1,
+    >(
+        &mut store.obj_bul,
+        exec_method.new_object.clone(),
+        exec_method.old_nullifier.clone(),
+        (),
+        exec_method.cb_com_list.clone(),
+        exec_method.proof.clone(),
+        Some(old_root),
+        &vk,
+    );
+    println!("---out: {:?}", out);
 
-       // User now updates its object again, again in accordance with the first interaction (each of
-       // these two interactions have added callbacks to the user)
-       //
-       println!("[USER] Interacting (proving)...");
-       let start = SystemTime::now();
+    println!("---leaves are {:?}", store.obj_bul.tree.leaves);
 
-       let exec_method2 = u
-           .exec_method_create_cb::<Poseidon<2>, (), (), (), (), F, FpVar<F>, Cr, Groth16<E>, GRSchnorrObjStore, 1>(
-               &mut rng,
-               interaction.clone(),
-               [FakeSigPubkey::pk()],
-               Time::from(0),
-               &store.obj_bul,
-               true,
-               &pk,
-               (),
-               (),
-           )
-           .unwrap();
+    let s1 = start.elapsed().unwrap();
+    // Server checks proof on interaction with the verification key, approves it, and stores the new object into the store
 
-       println!(
-           "\t (time) Interaction (proving) time: {:?}",
-           start.elapsed().unwrap()
-       );
+    let start = SystemTime::now();
 
-       println!("[USER] Executed interaction! New user: {:o} \n\n", u);
+    let root = store.obj_bul.get_root();
+    println!("root: {:?}", root);
+    let res = store
+         .approve_interaction_and_store::<TestData, Groth16<E>, (), IMTObjStore<F, INT_TREE_DEPTH>, Poseidon<2>, 1>(
+             exec_method,          // output of interaction
+             FakeSigPrivkey::sk(), // for authenticity: verify rerandomization of key produces
+             // proper tickets (here it doesn't matter)
+             (),
+             &store.obj_bul.clone(),
+             cb_methods.clone(),
+             Time::from(0),
+             old_root,
+             false,
+             &vk,
+             332, // interaction number
+         );
+    store
+        .obj_bul
+        .tree
+        .merkle_tree
+        .checkpoint(store.obj_bul.tree.merkle_tree.checkpoint_count());
+    println!("res: {:?}", res);
 
-       println!("[BULLETIN / SERVER] Verifying and storing...");
-       let start = SystemTime::now();
+    println!("\t (time) Verify + append: {:?}", s1);
+    println!(
+        "\t (time) Verify + store interaction: {:?}",
+        start.elapsed().unwrap()
+    );
+    println!(
+        "[BULLETIN] Checked proof and stored user... Output: {:?}",
+        out
+    );
+    println!(
+        "[SERVER] Checking proof and storing interaction... Output: {:?} \n\n",
+        res
+    );
 
-       let out = <GRSchnorrObjStore as UserBul<F, TestData>>::verify_interact_and_append::<
-           (),
-           Groth16<E>,
-           1,
-       >(
-           &mut store.obj_bul,
-           exec_method2.new_object.clone(),
-           exec_method2.old_nullifier.clone(),
-           (),
-           exec_method2.cb_com_list.clone(),
-           exec_method2.proof.clone(),
-           None,
-           &vk,
-       );
+    // User now updates its object again, again in accordance with the first interaction (each of
+    // these two interactions have added callbacks to the user)
+    //
 
-       let s1 = start.elapsed().unwrap();
-       let start = SystemTime::now();
+    println!("[USER] Interacting (proving)...");
+    let start = SystemTime::now();
+    let exec_method2 = u
+              .exec_method_create_cb::<Poseidon<2>, (), (), (), (), F, FpVar<F>, Cr, Groth16<E>, IMTObjStore<F, INT_TREE_DEPTH>, 1>(
+                  &mut rng,
+                  interaction.clone(),
+                  [FakeSigPubkey::pk()],
+                  Time::from(0),
+                  &store.obj_bul,
+                  false,
+                  &pk,
+                  (),
+                  (),
+              )
+              .unwrap();
 
-       // The server approves the interaction and stores it again
-       let res = store
-           .approve_interaction_and_store::<TestData, Groth16<E>, (), GRSchnorrObjStore, Poseidon<2>, 1>(
+    /*
+    println!("leaves are {:?}", store.obj_bul.tree.leaves);
+    println!("user commit is {:?}", u.commit::<Poseidon<2>>());
+    println!(
+        "path are {:?}",
+        store.obj_bul.get_path_of(&u.commit::<Poseidon<2>>())
+    );
+    let exec_method_const = u
+        .constraint_exec_method_create_cb::<Poseidon<2>, (), (), (), (), F, FpVar<F>, Cr, IMTObjStore<F, INT_TREE_DEPTH>, 1>(
+            &mut rng,
+            interaction.clone(), // see interaction
+            [FakeSigPubkey::pk()],
+            Time::from(0),
+            &store.obj_bul,
+            false,
+            (),
+            (),
+        );
+
+    println!(
+        "exec_method_const is_satisfied: {:?}",
+        exec_method_const.unwrap().is_satisfied()
+    );
+
+     */
+    println!(
+        "\t (time) Interaction (proving) time: {:?}",
+        start.elapsed().unwrap()
+    );
+
+    println!("[USER] Executed interaction! New user: {:o} \n\n", u);
+
+    println!("[BULLETIN / SERVER] Verifying and storing...");
+    let start = SystemTime::now();
+
+    let out = <IMTObjStore<F, INT_TREE_DEPTH> as UserBul<F, TestData>>::verify_interact_and_append::<
+        (),
+        Groth16<E>,
+        1,
+    >(
+        &mut store.obj_bul,
+        exec_method2.new_object.clone(),
+        exec_method2.old_nullifier.clone(),
+        (),
+        exec_method2.cb_com_list.clone(),
+        exec_method2.proof.clone(),
+        Some(root),
+        &vk,
+    );
+    println!("---out: {:?}", out);
+
+    let s1 = start.elapsed().unwrap();
+    let start = SystemTime::now();
+
+    // The server approves the interaction and stores it again
+    let res = store
+           .approve_interaction_and_store::<TestData, Groth16<E>, (), IMTObjStore<F, INT_TREE_DEPTH>, Poseidon<2>, 1>(
                exec_method2,
                FakeSigPrivkey::sk(),
                (),
                &store.obj_bul.clone(),
                cb_methods.clone(),
                Time::from(0),
-               store.obj_bul.get_pubkey(),
-               true,
+               root,
+               false,
                &vk,
                389,
            );
+    store
+        .obj_bul
+        .tree
+        .merkle_tree
+        .checkpoint(store.obj_bul.tree.merkle_tree.checkpoint_count());
+    println!("---res: {:?}", res);
 
-       println!("\t (time) Verify + append: {:?}", s1);
-       println!(
-           "\t (time) Verify + store interaction: {:?}",
-           start.elapsed().unwrap()
-       );
-       println!(
-           "[BULLETIN] Checking proof and storing new user... Output: {:?}",
-           out
-       );
-       println!(
-           "[SERVER] Checking proof and storing interaction... Output: {:?} \n\n",
-           res
-       );
-
+    println!("\t (time) Verify + append: {:?}", s1);
+    println!(
+        "\t (time) Verify + store interaction: {:?}",
+        start.elapsed().unwrap()
+    );
+    println!(
+        "[BULLETIN] Checking proof and storing new user... Output: {:?}",
+        out
+    );
+    println!(
+        "[SERVER] Checking proof and storing interaction... Output: {:?} \n\n",
+        res
+    );
+    /*
        let called = store
            .call(
                store.get_ticket_ind(0, 0).0,

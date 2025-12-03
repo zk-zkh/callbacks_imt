@@ -814,7 +814,7 @@ dependencies = [
 [[package]]
 name = "incrementalmerkletree"
 version = "0.8.2"
-source = "git+https://github.com/moshih/incrementalmerkletree.git#31dc0ae7f7cb52de5a9b89502021f42d9d2bcd77"
+source = "git+https://github.com/moshih/incrementalmerkletree.git#73bce04f6bceb8b049a0787aca81ab981ced496b"
 dependencies = [
  "either",
  "proptest",
@@ -826,7 +826,7 @@ dependencies = [
 [[package]]
 name = "incrementalmerkletree-testing"
 version = "0.3.0"
-source = "git+https://github.com/moshih/incrementalmerkletree.git#31dc0ae7f7cb52de5a9b89502021f42d9d2bcd77"
+source = "git+https://github.com/moshih/incrementalmerkletree.git#73bce04f6bceb8b049a0787aca81ab981ced496b"
 dependencies = [
  "ark-bls12-381",
  "ark-bn254 0.5.0",
@@ -908,9 +908,9 @@ checksum = "df1d3c3b53da64cf5760482273a98e575c651a67eec7f77df96b5b642de8f039"
 
 [[package]]
 name = "log"
-version = "0.4.28"
+version = "0.4.29"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "34080505efa8e45a4b816c349525ebe327ceaa8559756f0356cba97ef3bf7432"
+checksum = "5e5032e24019045c762d3c0f28f5b6b8bbf38563a65908389bf7978758920897"
 
 [[package]]
 name = "matrixmultiply"
