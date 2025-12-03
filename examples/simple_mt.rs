@@ -225,7 +225,7 @@ fn main() {
         leaf: (F::zero(), F::zero()),
         path: Path {
             leaf_sibling_hash: F::zero(),
-            auth_path: vec![F::zero(); INT_TREE_DEPTH as usize - 1],
+            auth_path: vec![F::zero(); INT_TREE_DEPTH as usize - 2],
             leaf_index: 0,
         },
     };
@@ -249,7 +249,7 @@ fn main() {
                 (),
                 false,
                 path_default.clone(),
-                priv_scan_args_default.clone(),
+                (),
             );
     // generate keys for the callback scan
     let (pks, vks) = get_scan_interaction::<
@@ -456,19 +456,19 @@ fn main() {
     let root = store.obj_bul.get_root();
     println!("root: {:?}", root);
     let res = store
-         .approve_interaction_and_store::<TestData, Groth16<E>, (), IMTObjStore<F, INT_TREE_DEPTH>, Poseidon<2>, 1>(
-             exec_method,          // output of interaction
-             FakeSigPrivkey::sk(), // for authenticity: verify rerandomization of key produces
-             // proper tickets (here it doesn't matter)
-             (),
-             &store.obj_bul.clone(),
-             cb_methods.clone(),
-             Time::from(0),
-             old_root,
-             false,
-             &vk,
-             332, // interaction number
-         );
+        .approve_interaction_and_store::<TestData, Groth16<E>, (), IMTObjStore<F, INT_TREE_DEPTH>, Poseidon<2>, 1>(
+            exec_method,          // output of interaction
+            FakeSigPrivkey::sk(), // for authenticity: verify rerandomization of key produces
+            // proper tickets (here it doesn't matter)
+            (),
+            &store.obj_bul.clone(),
+            cb_methods.clone(),
+            Time::from(0),
+            old_root,
+            false,
+            &vk,
+            332, // interaction number
+        );
     store
         .obj_bul
         .tree
@@ -497,18 +497,18 @@ fn main() {
     println!("[USER] Interacting (proving)...");
     let start = SystemTime::now();
     let exec_method2 = u
-              .exec_method_create_cb::<Poseidon<2>, (), (), (), (), F, FpVar<F>, Cr, Groth16<E>, IMTObjStore<F, INT_TREE_DEPTH>, 1>(
-                  &mut rng,
-                  interaction.clone(),
-                  [FakeSigPubkey::pk()],
-                  Time::from(0),
-                  &store.obj_bul,
-                  false,
-                  &pk,
-                  (),
-                  (),
-              )
-              .unwrap();
+        .exec_method_create_cb::<Poseidon<2>, (), (), (), (), F, FpVar<F>, Cr, Groth16<E>, IMTObjStore<F, INT_TREE_DEPTH>, 1>(
+            &mut rng,
+            interaction.clone(),
+            [FakeSigPubkey::pk()],
+            Time::from(0),
+            &store.obj_bul,
+            false,
+            &pk,
+            (),
+            (),
+        )
+        .unwrap();
 
     /*
     println!("leaves are {:?}", store.obj_bul.tree.leaves);
@@ -566,18 +566,18 @@ fn main() {
 
     // The server approves the interaction and stores it again
     let res = store
-           .approve_interaction_and_store::<TestData, Groth16<E>, (), IMTObjStore<F, INT_TREE_DEPTH>, Poseidon<2>, 1>(
-               exec_method2,
-               FakeSigPrivkey::sk(),
-               (),
-               &store.obj_bul.clone(),
-               cb_methods.clone(),
-               Time::from(0),
-               root,
-               false,
-               &vk,
-               389,
-           );
+        .approve_interaction_and_store::<TestData, Groth16<E>, (), IMTObjStore<F, INT_TREE_DEPTH>, Poseidon<2>, 1>(
+            exec_method2,
+            FakeSigPrivkey::sk(),
+            (),
+            &store.obj_bul.clone(),
+            cb_methods.clone(),
+            Time::from(0),
+            root,
+            false,
+            &vk,
+            389,
+        );
     store
         .obj_bul
         .tree
@@ -625,6 +625,42 @@ fn main() {
     let start = SystemTime::now();
 
     old_root = store.obj_bul.get_root();
+
+    /*
+    let u_test = u.clone();
+    let (pub_args, scan_one_const) = u_test.circuit_scan_callbacks::<Poseidon<2>, F, FpVar<F>, Cr, MTCallbackStore<F, INT_TREE_DEPTH, F>, IMTObjStore<F, INT_TREE_DEPTH>, NUMSCANS>
+    (&mut rng,
+     &store.obj_bul,
+     false,
+     &store.callback_bul,
+     (false, false),
+     F::zero(),
+     cb_methods.clone(),
+    ).unwrap();
+    let new_cs = ConstraintSystem::<F>::new_ref();
+    scan_one_const
+        .clone()
+        .generate_constraints(new_cs.clone())
+        .unwrap();
+    new_cs.is_satisfied().unwrap();
+
+    println!("scan_one_const: {:?}?", scan_one_const.bul_memb_is_const);
+    println!(
+        "scan_one_const: {:}",
+        scan_one_const.pub_bul_membership_data
+    );
+    println!(
+        "scan_one_const: {:?}",
+        scan_one_const.priv_args.memb_priv[0].0.auth_path.len()
+    );
+    println!(
+        "scan_one_const: {:?}",
+        scan_one_const.priv_args.nmemb_priv[0].path.auth_path.len()
+    );
+    let (pkeys, vkeys) = Groth16::<E>::circuit_specific_setup(scan_one_const, &mut rng).unwrap();
+
+     */
+
     /*
     let scan_one_const = u.constraint_scan_callbacks::<Poseidon<2>, F, FpVar<F>, Cr, MTCallbackStore<F, INT_TREE_DEPTH, F>, IMTObjStore<F, INT_TREE_DEPTH>, NUMSCANS>
     (&mut rng,
@@ -637,8 +673,7 @@ fn main() {
     )
         .unwrap();
     println!("scan_one_const: {:?}", scan_one_const.1.is_satisfied());
-
-     */
+    */
 
     let (ps, scan_one) = u.scan_callbacks::<Poseidon<2>, F, FpVar<F>, Cr, MTCallbackStore<F, INT_TREE_DEPTH, F>, Groth16<E>, IMTObjStore<F, INT_TREE_DEPTH>, NUMSCANS>
            (&mut rng,
@@ -682,100 +717,149 @@ fn main() {
         &vks,
     );
     println!("Out: {:?}", out);
-    /*
-       let s1 = start.elapsed().unwrap();
 
-       let start = SystemTime::now();
+    let s1 = start.elapsed().unwrap();
 
-       let res = store
-           .approve_interaction_and_store::<TestData, Groth16<E>, PubScan, GRSchnorrObjStore, Poseidon<2>, 0>(
+    let start = SystemTime::now();
+
+    let root = store.obj_bul.get_root();
+    println!("root: {:?}", root);
+    let res = store
+           .approve_interaction_and_store::<TestData, Groth16<E>, PubScan, IMTObjStore<F, INT_TREE_DEPTH>, Poseidon<2>, 0>(
                scan_one,
                FakeSigPrivkey::sk(),
                ps.clone(),
                &store.obj_bul.clone(),
                cb_methods.clone(),
-               store.callback_bul.get_epoch(),
-               store.obj_bul.get_pubkey(),
-               true,
+               Time::from(0),
+               old_root,
+               false,
                &vks,
                442,
            );
 
-       println!("\t (time) Verify + append: {:?}", s1);
-       println!(
-           "\t (time) Verify + store scan: {:?}",
-           start.elapsed().unwrap()
-       );
+    println!("\t (time) Verify + append: {:?}", s1);
+    println!(
+        "\t (time) Verify + store scan: {:?}",
+        start.elapsed().unwrap()
+    );
 
-       println!(
-           "[BULLETIN] Checking proof and storing new user... Output: {:?}",
-           out
-       );
-       println!(
-           "[SERVER] Checking proof for first scan... Output: {:?} \n\n",
-           res
-       );
+    println!(
+        "[BULLETIN] Checking proof and storing new user... Output: {:?}",
+        out
+    );
+    println!(
+        "[SERVER] Checking proof for first scan... Output: {:?} \n\n",
+        res
+    );
 
-       println!("[SERVER] Calling *the second callback*... ");
+    println!("[SERVER] Calling *the second callback*... ");
 
-       let called = store
-           .call(
-               store.get_ticket_ind(1, 0).0,
-               F::from(41),
-               FakeSigPrivkey::sk(),
-           )
-           .unwrap();
-       <GRSchnorrCallbackStore<F> as CallbackBul<F, F, Cr>>::verify_call_and_append(
-           &mut store.callback_bul,
-           called.0,
-           called.1,
-           called.2,
-           Time::from(0),
-       )
-       .unwrap();
-       store.callback_bul.update_epoch(&mut rng);
+    let called = store
+        .call(
+            store.get_ticket_ind(1, 0).0,
+            F::from(41),
+            FakeSigPrivkey::sk(),
+        )
+        .unwrap();
+    <MTCallbackStore<F, INT_TREE_DEPTH, F> as CallbackBul<F, F, Cr>>::verify_call_and_append(
+        &mut store.callback_bul,
+        called.0,
+        called.1,
+        called.2,
+        Time::from(0),
+    )
+    .unwrap();
+    store
+        .obj_bul
+        .tree
+        .merkle_tree
+        .checkpoint(store.obj_bul.tree.merkle_tree.checkpoint_count());
+    store
+        .callback_bul
+        .memb_tree
+        .merkle_tree
+        .checkpoint(store.callback_bul.memb_tree.merkle_tree.checkpoint_count());
 
-       println!("[SERVER] Called!... \n\n");
+    store
+        .callback_bul
+        .memb_tree
+        .merkle_tree
+        .checkpoint(store.callback_bul.memb_tree.merkle_tree.checkpoint_count());
+    //store.callback_bul.update_epoch(&mut rng);
 
-       println!("[USER] Scanning the second ticket... ");
+    println!("[SERVER] Called!... \n\n");
 
-       // Setup a scan for the second callback
+    println!("[USER] Scanning the second ticket... ");
 
-       let start = SystemTime::now();
+    // Setup a scan for the second callback
 
-       let (ps, scan_second) = u
-           .scan_callbacks::<Poseidon<2>, F, FpVar<F>, Cr, GRSchnorrCallbackStore<F>, Groth16<E>, GRSchnorrObjStore, NUMSCANS>(
+    let start = SystemTime::now();
+
+    /*
+    {
+        let u_test = u.clone();
+        let (pub_args, scan_second_const) = u_test.circuit_scan_callbacks::<Poseidon<2>, F, FpVar<F>, Cr, MTCallbackStore<F, INT_TREE_DEPTH, F>, IMTObjStore<F, INT_TREE_DEPTH>, NUMSCANS>
+        (&mut rng,
+         &store.obj_bul,
+         false,
+         &store.callback_bul,
+         (false, false),
+         F::zero(),
+         cb_methods.clone(),
+        ).unwrap();
+        let new_cs = ConstraintSystem::<F>::new_ref();
+        scan_second_const
+            .clone()
+            .generate_constraints(new_cs.clone())
+            .unwrap();
+        new_cs.is_satisfied().unwrap();
+    }
+
+     */
+
+    let (ps, scan_second) = u
+           .scan_callbacks::<Poseidon<2>, F, FpVar<F>, Cr, MTCallbackStore<F, INT_TREE_DEPTH, F>, Groth16<E>, IMTObjStore<F, INT_TREE_DEPTH>, NUMSCANS>(
                &mut rng,
                &store.obj_bul,
-               true,
+               false,
                &pks,
                &store.callback_bul,
-               (true, true),
-               store.callback_bul.get_epoch(),
+               (false, false),
+               F::zero(),
                cb_methods.clone(),
            )
            .unwrap();
 
-       println!("\t (time) Scanning time: {:?}", start.elapsed().unwrap());
-       println!("[USER] Scanning the second ticket... {:o} \n\n", u);
+    store
+        .obj_bul
+        .tree
+        .merkle_tree
+        .checkpoint(store.obj_bul.tree.merkle_tree.checkpoint_count());
+    println!("\t (time) Scanning time: {:?}", start.elapsed().unwrap());
+    println!("[USER] Scanning the second ticket... {:o} \n\n", u);
 
-       println!("[BULLETIN / SERVER] Verifying and storing scan...");
-       let start = SystemTime::now();
+    println!("[BULLETIN / SERVER] Verifying and storing scan...");
+    let start = SystemTime::now();
 
-       let out = <GRSchnorrObjStore as UserBul<F, TestData>>::verify_interact_and_append::<
-           PubScan,
-           Groth16<E>,
-           0,
-       >(
-           &mut store.obj_bul,
-           scan_second.new_object.clone(),
-           scan_second.old_nullifier.clone(),
-           ps.clone(),
-           scan_second.cb_com_list.clone(),
-           scan_second.proof.clone(),
-           None,
-           &vks,
-       );
+    old_root = store.obj_bul.get_root();
+    let out = <IMTObjStore<F, INT_TREE_DEPTH> as UserBul<F, TestData>>::verify_interact_and_append::<
+        PubScan,
+        Groth16<E>,
+        0,
+    >(
+        &mut store.obj_bul,
+        scan_second.new_object.clone(),
+        scan_second.old_nullifier.clone(),
+        ps.clone(),
+        scan_second.cb_com_list.clone(),
+        scan_second.proof.clone(),
+        Some(old_root),
+        &vks,
+    );
+    print!("out: {:?}", out);
+
+    /*
        let s1 = start.elapsed().unwrap();
 
        let start = SystemTime::now();
