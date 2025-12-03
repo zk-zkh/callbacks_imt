@@ -12,7 +12,7 @@ use incrementalmerkletree_testing::{
     tree_util::PoseidonTreeConfig,
 };
 use rand::thread_rng;
-use std::time::SystemTime;
+use std::time::Instant;
 use zk_callbacks::{
     generic::{
         bulletin::{CallbackBul, JoinableBulletin, UserBul},
@@ -168,14 +168,11 @@ fn main() {
     println!("[SERVER] INIT...");
     // The store for user objects
 
-    let start = SystemTime::now();
+    let start = Instant::now();
 
     let mut store: DeCentralStore<F, INT_TREE_DEPTH, F> = DeCentralStore::new(&mut rng);
 
-    println!(
-        "\t (time) Generated data structures: {:?}",
-        start.elapsed().unwrap()
-    );
+    println!("\t (time) Generated data structures: {:?}", start.elapsed());
 
     // The list of valid callback methods
     let cb_methods = vec![cb.clone(), cb2.clone()];
@@ -211,7 +208,7 @@ fn main() {
 
     println!("[SERVER] PROOF KEY GENERATION...");
 
-    let start = SystemTime::now();
+    let start = Instant::now();
 
     let path_default: IntTreePath<F> = IntTreePath {
         0: Path {
@@ -285,10 +282,7 @@ fn main() {
     >(&mut rng, some_pred, None, (), path_default.clone());
     //>(&mut rng, some_pred, Some(store.obj_bul.get_root()), ());
 
-    println!(
-        "\t (time) Generated proof keys: {:?}",
-        start.elapsed().unwrap()
-    );
+    println!("\t (time) Generated proof keys: {:?}", start.elapsed());
     println!("[SERVER] Init done! \n\n");
 
     // END SERVER, START USER
@@ -315,6 +309,7 @@ fn main() {
     println!("[USER] joined! \n\n");
     println!("MT root after user is {:?}", store.obj_bul.get_root());
     store.obj_bul.tree.merkle_tree.checkpoint(0);
+    store.callback_bul.memb_tree.merkle_tree.checkpoint(0);
 
     println!("leaves are {:?}", store.obj_bul.tree.leaves);
     println!("user commit is {:?}", u.commit::<Poseidon<2>>());
@@ -323,7 +318,7 @@ fn main() {
     println!("user path len is {:?}", path.unwrap().0.auth_path.len());
 
     println!("[USER] Generating proof... ");
-    let start = SystemTime::now();
+    let start = Instant::now();
     // Prove a statement about itself (and how it lies within the store)
     let proof = u
         .prove_statement_and_in::<Poseidon<2>, (), (), (), (), Groth16<E>, IMTObjStore<F, INT_TREE_DEPTH>>(
@@ -346,12 +341,12 @@ fn main() {
 
     println!(
         "\t (time) Generated proof in + statement: {:?}",
-        start.elapsed().unwrap()
+        start.elapsed()
     );
     println!("[USER] Proof generated! \n\n");
 
     println!("[SERVER] Verifying proof... ");
-    let start = SystemTime::now();
+    let start = Instant::now();
 
     let mut pub_inputs = vec![];
     pub_inputs.extend::<Vec<F>>(().to_field_elements().unwrap()); // pub args
@@ -361,13 +356,13 @@ fn main() {
     // argument
     let out = Groth16::<E>::verify(&vki, &pub_inputs, &proof);
 
-    println!("\t (time) Verified proof: {:?}", start.elapsed().unwrap());
+    println!("\t (time) Verified proof: {:?}", start.elapsed());
     println!("[SERVER] Verified proof Output: {:?} \n\n", out);
 
     assert!(out.is_ok());
 
     println!("[USER] Interacting (proving)...");
-    let start = SystemTime::now();
+    let start = Instant::now();
     // Update the user in accordance with the first interaction
     println!("before user commit: {:?}", u.commit::<Poseidon<2>>());
     let exec_method = u
@@ -421,12 +416,12 @@ fn main() {
 
     println!(
         "\t (time) Interaction (proving) time: {:?}",
-        start.elapsed().unwrap()
+        start.elapsed()
     );
     println!("[USER] Executed interaction! New user: {:o} \n\n", u);
 
     println!("[BULLETIN / SERVER] Verifying and storing...");
-    let start = SystemTime::now();
+    let start = Instant::now();
 
     let mut old_root = store.obj_bul.get_root();
     println!("root: {:?}", old_root);
@@ -448,10 +443,10 @@ fn main() {
 
     println!("---leaves are {:?}", store.obj_bul.tree.leaves);
 
-    let s1 = start.elapsed().unwrap();
+    let s1 = start.elapsed();
     // Server checks proof on interaction with the verification key, approves it, and stores the new object into the store
 
-    let start = SystemTime::now();
+    let start = Instant::now();
 
     let root = store.obj_bul.get_root();
     println!("root: {:?}", root);
@@ -479,7 +474,7 @@ fn main() {
     println!("\t (time) Verify + append: {:?}", s1);
     println!(
         "\t (time) Verify + store interaction: {:?}",
-        start.elapsed().unwrap()
+        start.elapsed()
     );
     println!(
         "[BULLETIN] Checked proof and stored user... Output: {:?}",
@@ -495,7 +490,7 @@ fn main() {
     //
 
     println!("[USER] Interacting (proving)...");
-    let start = SystemTime::now();
+    let start = Instant::now();
     let exec_method2 = u
         .exec_method_create_cb::<Poseidon<2>, (), (), (), (), F, FpVar<F>, Cr, Groth16<E>, IMTObjStore<F, INT_TREE_DEPTH>, 1>(
             &mut rng,
@@ -537,13 +532,13 @@ fn main() {
      */
     println!(
         "\t (time) Interaction (proving) time: {:?}",
-        start.elapsed().unwrap()
+        start.elapsed()
     );
 
     println!("[USER] Executed interaction! New user: {:o} \n\n", u);
 
     println!("[BULLETIN / SERVER] Verifying and storing...");
-    let start = SystemTime::now();
+    let start = Instant::now();
 
     let out = <IMTObjStore<F, INT_TREE_DEPTH> as UserBul<F, TestData>>::verify_interact_and_append::<
         (),
@@ -561,8 +556,8 @@ fn main() {
     );
     println!("---out: {:?}", out);
 
-    let s1 = start.elapsed().unwrap();
-    let start = SystemTime::now();
+    let s1 = start.elapsed();
+    let start = Instant::now();
 
     // The server approves the interaction and stores it again
     let res = store
@@ -588,7 +583,7 @@ fn main() {
     println!("\t (time) Verify + append: {:?}", s1);
     println!(
         "\t (time) Verify + store interaction: {:?}",
-        start.elapsed().unwrap()
+        start.elapsed()
     );
     println!(
         "[BULLETIN] Checking proof and storing new user... Output: {:?}",
@@ -616,13 +611,17 @@ fn main() {
     .unwrap();
     println!("called: {:?}", store.callback_bul.memb_tree.leaves);
     println!("nmem: {:?}", store.callback_bul.nmemb_tree.leaves);
-    store.callback_bul.memb_tree.merkle_tree.checkpoint(0);
+    store
+        .callback_bul
+        .memb_tree
+        .merkle_tree
+        .checkpoint(store.callback_bul.memb_tree.merkle_tree.checkpoint_count());
     //store.callback_bul.update_epoch(&mut rng);
 
     println!("[USER] Scanning a ticket... ");
     // Setup a scan for a single callback (the first one in the list)
 
-    let start = SystemTime::now();
+    let start = Instant::now();
 
     old_root = store.obj_bul.get_root();
 
@@ -693,13 +692,13 @@ fn main() {
         .checkpoint(store.obj_bul.tree.merkle_tree.checkpoint_count());
     println!(
         "\t (time) Scanning (interaction proving) time: {:?}",
-        start.elapsed().unwrap()
+        start.elapsed()
     );
 
     println!("[USER] Scanned single ticket... {:o} \n\n", u);
 
     println!("[BULLETIN / SERVER] Verifying and storing scan...");
-    let start = SystemTime::now();
+    let start = Instant::now();
 
     old_root = store.obj_bul.get_root();
     let out = <IMTObjStore<F, INT_TREE_DEPTH> as UserBul<F, TestData>>::verify_interact_and_append::<
@@ -718,9 +717,9 @@ fn main() {
     );
     println!("Out: {:?}", out);
 
-    let s1 = start.elapsed().unwrap();
+    let s1 = start.elapsed();
 
-    let start = SystemTime::now();
+    let start = Instant::now();
 
     let root = store.obj_bul.get_root();
     println!("root: {:?}", root);
@@ -739,10 +738,7 @@ fn main() {
            );
 
     println!("\t (time) Verify + append: {:?}", s1);
-    println!(
-        "\t (time) Verify + store scan: {:?}",
-        start.elapsed().unwrap()
-    );
+    println!("\t (time) Verify + store scan: {:?}", start.elapsed());
 
     println!(
         "[BULLETIN] Checking proof and storing new user... Output: {:?}",
@@ -755,6 +751,14 @@ fn main() {
 
     println!("[SERVER] Calling *the second callback*... ");
 
+    println!(
+        "before cb bul leaves:{:?}",
+        store.callback_bul.memb_tree.leaves
+    );
+    println!(
+        "before nmemb cb bul leaves:{:?}",
+        store.callback_bul.nmemb_tree.leaves
+    );
     let called = store
         .call(
             store.get_ticket_ind(1, 0).0,
@@ -771,21 +775,19 @@ fn main() {
     )
     .unwrap();
     store
-        .obj_bul
-        .tree
-        .merkle_tree
-        .checkpoint(store.obj_bul.tree.merkle_tree.checkpoint_count());
-    store
         .callback_bul
         .memb_tree
         .merkle_tree
         .checkpoint(store.callback_bul.memb_tree.merkle_tree.checkpoint_count());
 
-    store
-        .callback_bul
-        .memb_tree
-        .merkle_tree
-        .checkpoint(store.callback_bul.memb_tree.merkle_tree.checkpoint_count());
+    println!(
+        "after cb bul leaves:{:?}",
+        store.callback_bul.memb_tree.leaves
+    );
+    println!(
+        "after nmemb cb bul leaves:{:?}",
+        store.callback_bul.nmemb_tree.leaves
+    );
     //store.callback_bul.update_epoch(&mut rng);
 
     println!("[SERVER] Called!... \n\n");
@@ -794,8 +796,8 @@ fn main() {
 
     // Setup a scan for the second callback
 
-    let start = SystemTime::now();
-
+    let start = Instant::now();
+    old_root = store.obj_bul.get_root();
     /*
     {
         let u_test = u.clone();
@@ -818,6 +820,11 @@ fn main() {
 
      */
 
+    store
+        .obj_bul
+        .tree
+        .merkle_tree
+        .checkpoint(store.obj_bul.tree.merkle_tree.checkpoint_count());
     let (ps, scan_second) = u
            .scan_callbacks::<Poseidon<2>, F, FpVar<F>, Cr, MTCallbackStore<F, INT_TREE_DEPTH, F>, Groth16<E>, IMTObjStore<F, INT_TREE_DEPTH>, NUMSCANS>(
                &mut rng,
@@ -830,17 +837,16 @@ fn main() {
                cb_methods.clone(),
            )
            .unwrap();
-
     store
         .obj_bul
         .tree
         .merkle_tree
         .checkpoint(store.obj_bul.tree.merkle_tree.checkpoint_count());
-    println!("\t (time) Scanning time: {:?}", start.elapsed().unwrap());
+    println!("\t (time) Scanning time: {:?}", start.elapsed());
     println!("[USER] Scanning the second ticket... {:o} \n\n", u);
 
     println!("[BULLETIN / SERVER] Verifying and storing scan...");
-    let start = SystemTime::now();
+    let start = Instant::now();
 
     old_root = store.obj_bul.get_root();
     let out = <IMTObjStore<F, INT_TREE_DEPTH> as UserBul<F, TestData>>::verify_interact_and_append::<
@@ -859,40 +865,37 @@ fn main() {
     );
     print!("out: {:?}", out);
 
-    /*
-       let s1 = start.elapsed().unwrap();
+    let s1 = start.elapsed();
 
-       let start = SystemTime::now();
+    let start = Instant::now();
 
-       let res = store
-           .approve_interaction_and_store::<TestData, Groth16<E>, PubScan, GRSchnorrObjStore, Poseidon<2>, 0>(
+    let root = store.obj_bul.get_root();
+    println!("root: {:?}", root);
+    let res = store
+           .approve_interaction_and_store::<TestData, Groth16<E>, PubScan, IMTObjStore<F, INT_TREE_DEPTH>, Poseidon<2>, 0>(
                scan_second,
                FakeSigPrivkey::sk(),
                ps.clone(),
                &store.obj_bul.clone(),
                cb_methods.clone(),
-               store.callback_bul.get_epoch(),
-               store.obj_bul.get_pubkey(),
-               true,
+               Time::from(0),
+               old_root,
+               false,
                &vks,
                441,
            );
+    println!("res: {:?}", res);
 
-       println!("\t (time) Verify + append: {:?}", s1);
-       println!(
-           "\t (time) Verify + store scan: {:?}",
-           start.elapsed().unwrap()
-       );
-       println!(
-           "[BULLETIN] Checking proof and storing new user... Output: {:?}",
-           out
-       );
-       println!(
-           "[SERVER] Checking proof for second scan... Output: {:?} \n\n",
-           res
-       );
+    println!("\t (time) Verify + append: {:?}", s1);
+    println!("\t (time) Verify + store scan: {:?}", start.elapsed());
+    println!(
+        "[BULLETIN] Checking proof and storing new user... Output: {:?}",
+        out
+    );
+    println!(
+        "[SERVER] Checking proof for second scan... Output: {:?} \n\n",
+        res
+    );
 
-       println!("{:?}", u);
-
-    */
+    println!("{:?}", u);
 }

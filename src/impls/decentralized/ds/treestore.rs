@@ -339,12 +339,12 @@ where
     /// Get a membership witness (a signature) for a specific ticket. If the ticket is not in the
     /// bulletin, this should return None.
     pub fn get_memb_witness(&self, tik: &FakeSigPubkey<F>) -> Option<IntTreePath<F>> {
-        let index = self.memb_tree.get_leaf_index(tik.0);
-        if index != usize::MAX {
-            Some(self.memb_tree.auth_path(index))
-        } else {
-            None
+        for (i, (t, _, _)) in (self.memb_called_cbs).iter().enumerate() {
+            if t == tik {
+                return Some(self.memb_tree.auth_path(i));
+            }
         }
+        None
     }
 
     /// Get a nonmembership witness for a ticket. If the ticket is in the bulletin, then this
@@ -404,10 +404,12 @@ where
         RangeTreePath<F>,
     ) {
         let memb_path_idx = self.memb_tree.get_leaf_index(tik.0);
-        if memb_path_idx != usize::MAX {
+        let memb_witness = self.get_memb_witness(&tik);
+        //if memb_path_idx != usize::MAX {
+        if memb_witness.is_some() {
             (
                 self.memb_tree.get_root(),
-                self.get_memb_witness(&tik).unwrap(),
+                memb_witness.unwrap(),
                 self.nmemb_tree.get_root(),
                 self.nmemb_tree.auth_path(0),
             )
@@ -496,10 +498,12 @@ where
         RangeTreePath<F>,
     ) {
         let memb_path_idx = self.memb_tree.get_leaf_index(tik.0);
-        if memb_path_idx != usize::MAX {
+        let memb_witness = self.get_memb_witness(&tik);
+        //if memb_path_idx != usize::MAX {
+        if memb_witness.is_some() {
             (
                 self.memb_tree.get_root(),
-                self.memb_tree.auth_path(memb_path_idx),
+                memb_witness.unwrap(),
                 self.nmemb_tree.get_root(),
                 self.nmemb_tree.auth_path(0),
             )
@@ -571,6 +575,7 @@ where
         let tree_params_var: TreeParamsVar<F> = TreeParams::new().to_var();
         let tik_hash = <Poseidon<2>>::hash(&[tik.0, enc_args, time]);
         self.memb_tree.append(tik_hash);
+        self.nmemb_tree.append_value(tik.0);
         self.memb_called_cbs.push((tik, enc_args, time));
         Ok(())
     }
@@ -612,7 +617,9 @@ where
         let tree_params_var: TreeParamsVar<F> = TreeParams::new().to_var();
         let tik_hash = <Poseidon<2>>::hash(&v2.as_slice());
         self.memb_tree.append(tik_hash);
+        self.nmemb_tree.append_value(tik.0);
         self.memb_called_cbs.push((tik, enc_args, time));
+
         Ok(())
     }
 }
