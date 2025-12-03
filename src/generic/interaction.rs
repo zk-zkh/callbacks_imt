@@ -4,7 +4,7 @@ use crate::{
         bulletin::{PublicCallbackBul, PublicUserBul},
         callbacks::{CallbackCom, CallbackComVar, add_ticket_to_hc_zk, create_defaults},
         object::{Com, ComVar, Id, Nul, NulVar, Time},
-        scan::{PubScanArgs, get_scan_interaction},
+        scan::{PrivScanArgs, PubScanArgs, get_scan_interaction},
         user::{User, UserData, UserVar},
     },
     util::ArrayVar,
@@ -542,6 +542,7 @@ where
         aux_data: PubArgs,
         is_scan: bool,
         wit_default: Bul::MembershipWitness,
+        priv_args_default: PrivArgs,
     ) -> (Snark::ProvingKey, Snark::VerifyingKey) {
         let u = User::create(U::default(), rng);
 
@@ -568,7 +569,7 @@ where
             priv_new_user: u.clone(),
             priv_issued_callbacks: cbs.clone(),
             priv_bul_membership_witness: wit_default,
-            priv_args: PrivArgs::default(),
+            priv_args: priv_args_default,
 
             pub_new_com: u.commit::<H>(),
             pub_old_nul: u.zk_fields.nul,

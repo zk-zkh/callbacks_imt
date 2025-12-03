@@ -8,7 +8,8 @@ use ark_relations::r1cs::{
 };
 use ark_snark::SNARK;
 use incrementalmerkletree_testing::{
-    Tree, incremental_int_tree::IntTreePath, tree_util::PoseidonTreeConfig,
+    Tree, complement_tree::RangeTreePath, incremental_int_tree::IntTreePath,
+    tree_util::PoseidonTreeConfig,
 };
 use rand::thread_rng;
 use std::time::SystemTime;
@@ -20,7 +21,7 @@ use zk_callbacks::{
             generate_keys_for_statement_in_mt,
         },
         object::{Id, Time},
-        scan::{PubScanArgs, get_scan_interaction},
+        scan::{PrivScanArgs, PubScanArgs, get_scan_interaction},
         service::ServiceProvider,
         user::{User, UserVar},
     },
@@ -220,6 +221,25 @@ fn main() {
         },
     };
 
+    let range_path_default = RangeTreePath {
+        leaf: (F::zero(), F::zero()),
+        path: Path {
+            leaf_sibling_hash: F::zero(),
+            auth_path: vec![F::zero(); INT_TREE_DEPTH as usize - 1],
+            leaf_index: 0,
+        },
+    };
+
+    let priv_scan_args_default = PrivScanArgs {
+        priv_n_tickets: core::array::from_fn(|_| Default::default()),
+        enc_args: core::array::from_fn(|_| Default::default()),
+        post_times: core::array::from_fn(|_| Default::default()),
+        // Pass the correctly sized membership witness
+        memb_priv: [path_default.clone(); NUMSCANS],
+        // Pass the correctly sized non-membership witness
+        nmemb_priv: [range_path_default.clone(); NUMSCANS],
+    };
+
     // generate keys for the method described initially
     let (pk, vk) =
         interaction // see interaction
@@ -229,6 +249,7 @@ fn main() {
                 (),
                 false,
                 path_default.clone(),
+                priv_scan_args_default.clone(),
             );
     // generate keys for the callback scan
     let (pks, vks) = get_scan_interaction::<
@@ -247,6 +268,7 @@ fn main() {
         ex,
         true,
         path_default.clone(),
+        priv_scan_args_default.clone(),
     );
 
     // generate keys for the arbitrary predicate
