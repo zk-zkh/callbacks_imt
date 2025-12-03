@@ -814,7 +814,7 @@ dependencies = [
 [[package]]
 name = "incrementalmerkletree"
 version = "0.8.2"
-source = "git+https://github.com/moshih/incrementalmerkletree.git#2175ce9f1198753aa8a1332c1aeae2efe50b28b5"
+source = "git+https://github.com/moshih/incrementalmerkletree.git#a6ced37e8e2cda0eae1c22f487e3f63ab4db2cfc"
 dependencies = [
  "either",
  "proptest",
@@ -826,7 +826,7 @@ dependencies = [
 [[package]]
 name = "incrementalmerkletree-testing"
 version = "0.3.0"
-source = "git+https://github.com/moshih/incrementalmerkletree.git#2175ce9f1198753aa8a1332c1aeae2efe50b28b5"
+source = "git+https://github.com/moshih/incrementalmerkletree.git#a6ced37e8e2cda0eae1c22f487e3f63ab4db2cfc"
 dependencies = [
  "ark-bls12-381",
  "ark-bn254 0.5.0",

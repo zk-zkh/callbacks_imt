@@ -1,4 +1,5 @@
 use ark_bn254::{Bn254 as E, Fr as F};
+use ark_crypto_primitives::merkle_tree::Path;
 use ark_ff::Zero;
 use ark_groth16::Groth16;
 use ark_r1cs_std::{eq::EqGadget, fields::fp::FpVar, prelude::Boolean};
@@ -212,9 +213,11 @@ fn main() {
     let start = SystemTime::now();
 
     let path_default: IntTreePath<F> = IntTreePath {
-        leaf_sibling_hash: F::default(),
-        auth_path: vec![F::zero(); INT_TREE_DEPTH as usize - 1],
-        leaf_index: 0,
+        0: Path {
+            leaf_sibling_hash: F::default(),
+            auth_path: vec![F::zero(); INT_TREE_DEPTH as usize - 1],
+            leaf_index: 0,
+        },
     };
 
     // generate keys for the method described initially
@@ -259,9 +262,6 @@ fn main() {
         IMTObjStore<F, INT_TREE_DEPTH>,
     >(&mut rng, some_pred, None, (), path_default.clone());
     //>(&mut rng, some_pred, Some(store.obj_bul.get_root()), ());
-    let idk: ark_crypto_primitives::merkle_tree::Path<PoseidonTreeConfig<F>> =
-        IntTreePath::default();
-    println!("server path default is {:?}", idk);
 
     println!(
         "\t (time) Generated proof keys: {:?}",
@@ -298,7 +298,7 @@ fn main() {
     println!("user commit is {:?}", u.commit::<Poseidon<2>>());
     let path = store.obj_bul.get_path_of(&u.commit::<Poseidon<2>>());
     println!("user path is {:?}", path);
-    println!("user path len is {:?}", path.unwrap().auth_path.len());
+    println!("user path len is {:?}", path.unwrap().0.auth_path.len());
 
     println!("[USER] Generating proof... ");
     let start = SystemTime::now();

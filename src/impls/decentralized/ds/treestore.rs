@@ -168,7 +168,7 @@ impl<F: PrimeField + Absorb, const INT_TREE_DEPTH: u8, U: UserData<F>> PublicUse
         extra_pub: Self::MembershipPubVar,
     ) -> Result<Boolean<F>, SynthesisError> {
         let tree_params_var: TreeParamsVar<F> = TreeParams::new().to_var();
-        extra_witness.verify_membership(
+        extra_witness.0.verify_membership(
             &tree_params_var.leaf_params,
             &tree_params_var.two_to_one_params,
             &extra_pub,
@@ -429,7 +429,7 @@ where
     ) -> Result<Boolean<F>, SynthesisError> {
         let tree_params_var: TreeParamsVar<F> = TreeParams::new().to_var();
         let tik_hash = <Poseidon<2>>::hash_in_zk(&[tikvar.0.0, tikvar.1, tikvar.2])?;
-        extra_witness.verify_membership(
+        extra_witness.0.verify_membership(
             &tree_params_var.leaf_params,
             &tree_params_var.two_to_one_params,
             &extra_pub,
@@ -527,7 +527,7 @@ where
 
         let tree_params_var: TreeParamsVar<F> = TreeParams::new().to_var();
         let tik_hash = <Poseidon<2>>::hash_in_zk(&v)?;
-        extra_witness.verify_membership(
+        extra_witness.0.verify_membership(
             &tree_params_var.leaf_params,
             &tree_params_var.two_to_one_params,
             &extra_pub,
